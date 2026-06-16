@@ -9,6 +9,16 @@ _(to be finalized at end of run)_
 Overnight autonomous build of a per-platform creator CRM against **mock + CSV data only**.
 Guardrails held: no live integration, no scraping, no real-account auth, no AI chat/content.
 
+## Standing directives (from operator, this run)
+
+- **/goal: continually improve.** Keep working overnight, constantly — build →
+  `pnpm verify` → reviewer → commit, then the §16 hardening loop. Use sub-agents
+  (sonnet builders, opus reviewer). Go above and beyond.
+- **Aggressive testing.** Stress tests, edge cases, malformed/messy-input tests,
+  sandbox tests where useful. Never weaken/skip/delete a test to pass.
+- **Full autonomy granted.** Proceed without pausing for confirmation; never
+  regress the baseline; never violate the §2/§3/§8 guardrails.
+
 ---
 
 ## Environment notes (this run)
