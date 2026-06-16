@@ -84,7 +84,15 @@ Guardrails held: no live integration, no scraping, no real-account auth, no AI c
 
 ## Ideas for review (parked — NOT built, per no-scope-creep rule)
 
-- _(none yet)_
+- **OFAuth (or similar) managed-access integration** — a sanctioned third-party
+  API gateway (NOT scraping) that could later back the deferred `LiveAdapter`.
+  Their connect UX offers 3 modes: **Redirect** (creator authorizes on a hosted
+  page; least liability, recommended first target), **Embed** (iframe widget in
+  our app), **Whitelabel** (we own the credential-capture UI; most work +
+  compliance burden). Decision deferred per "NO live platform integration"
+  guardrail. Our adapter pattern + encrypted credential fields already leave the
+  slot open for this without a rewrite. Pick a connect mode if/when live is
+  greenlit. For now the `MockLiveAdapter` "Sandbox sync" is the local stand-in.
 
 ## Phase 6 hardening backlog (seed)
 

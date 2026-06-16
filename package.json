@@ -83,6 +83,9 @@
       "sharp",
       "msgpackr-extract",
       "unrs-resolver"
-    ]
+    ],
+    "overrides": {
+      "ioredis": "5.11.1"
+    }
   }
 }
