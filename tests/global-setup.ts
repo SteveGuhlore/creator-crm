@@ -5,6 +5,10 @@ import { execSync } from 'node:child_process';
 // schema. Integration tests then truncate + reseed as needed.
 export default function setup() {
   config({ path: '.env' });
+  if (process.env.SKIP_DB_PUSH === '1') {
+    // Lets parallel builders run pure unit tests without racing on the test DB.
+    return;
+  }
   const testUrl = process.env.TEST_DATABASE_URL;
   if (!testUrl) {
     // No dedicated test DB configured — DB integration tests will self-skip.
