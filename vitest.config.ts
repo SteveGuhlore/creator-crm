@@ -7,6 +7,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // DB integration tests truncate/reseed a shared Postgres — run test files
+    // serially so they never race each other. The suite is small + fast.
+    fileParallelism: false,
     globalSetup: ['./tests/global-setup.ts'],
     setupFiles: ['./tests/setup.ts'],
     include: [

@@ -25,7 +25,13 @@ export default async function DashboardLayout({
           <p className="text-lg font-bold">Creator CRM</p>
           <p className="text-xs text-muted-foreground">Mock + CSV data</p>
         </div>
-        <PlatformNav items={items} />
+        <PlatformNav
+          items={items}
+          tools={[
+            { label: 'Content Library', href: '/dashboard/library' },
+            { label: 'Import CSV', href: '/dashboard/import' },
+          ]}
+        />
         <div className="mt-auto px-3 pt-4">
           <p className="truncate pb-2 text-xs text-muted-foreground">
             {user.email} · {user.role}

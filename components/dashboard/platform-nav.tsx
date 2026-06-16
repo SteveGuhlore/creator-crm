@@ -9,11 +9,23 @@ export interface PlatformNavItem {
   slug: string;
 }
 
+export interface ToolNavItem {
+  label: string;
+  href: string;
+}
+
 /**
  * Per-platform navigation. Each platform is a SEPARATE section — there is no
- * merged/unified inbox (firm product decision).
+ * merged/unified inbox (firm product decision). Tools (cross-platform vault,
+ * import, workflow helpers) live in their own section below the platforms.
  */
-export function PlatformNav({ items }: { items: PlatformNavItem[] }) {
+export function PlatformNav({
+  items,
+  tools = [],
+}: {
+  items: PlatformNavItem[];
+  tools?: ToolNavItem[];
+}) {
   const pathname = usePathname();
   return (
     <nav className="flex flex-col gap-1">
@@ -50,6 +62,30 @@ export function PlatformNav({ items }: { items: PlatformNavItem[] }) {
           </Link>
         );
       })}
+      {tools.length > 0 ? (
+        <>
+          <p className="px-3 pb-1 pt-4 text-xs font-semibold uppercase text-muted-foreground">
+            Tools
+          </p>
+          {tools.map((tool) => {
+            const active = pathname.startsWith(tool.href);
+            return (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                className={cn(
+                  'rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent',
+                  active
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground',
+                )}
+              >
+                {tool.label}
+              </Link>
+            );
+          })}
+        </>
+      ) : null}
     </nav>
   );
 }
