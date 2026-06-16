@@ -43,11 +43,24 @@ Guardrails held: no live integration, no scraping, no real-account auth, no AI c
 - **Stubbed/Deferred:** —
 - **Blocked:** —
 
-### Phase 1 — Data model + seed ⏳ (next)
+### Phase 1 — Data model + seed ✅
 
-### Phase 2 — Feature modules (2a–2e) ⏳
+- **Done:** Frozen Prisma schema (11 entities, enums, indexes, multi-tenant fields),
+  initial migration, deterministic fixtures (5 platforms), idempotent `runSeed()`.
+- **Tested:** 24 generator + DB seed idempotency/invariant tests. Reviewer PASS.
 
-### Phase 3 — Workflow helpers ⏳
+### Phase 2 — Feature modules (2a–2e) ✅
+
+- **Done:** 2a Ingestion (CSV/mock adapters, LiveAdapter stub throws, ingest service,
+  import UI) · 2b Auth/RBAC/shell · 2c Analytics (per-platform/per-type + charts) ·
+  2d per-platform Inbox (separated, read-only) · 2e Content vault (tag/type/search).
+- **Tested:** 223 tests (pure unit incl. malformed-CSV/edge + DB integration:
+  ingestion upsert/idempotency/audit, inbox cross-platform isolation). Build green.
+  Reviewer PASS, 0 blockers.
+- **Fixed during integration:** adapter error-buffer overwrite bug; moved import/library
+  under `/dashboard` for middleware auth-gating.
+
+### Phase 3 — Workflow helpers 🔨 (in progress)
 
 ### Phase 4 — Audit + security hardening ⏳
 
@@ -59,11 +72,11 @@ Guardrails held: no live integration, no scraping, no real-account auth, no AI c
 
 ## Tested
 
-- Phase 0: health/util unit tests, `pnpm verify` pipeline.
+- Phase 0–2: 223 tests green (`pnpm verify`), production build green.
 
 ## Stubbed / Deferred
 
-- _(none yet)_
+- `LiveAdapter` — interface + `NotImplementedError` only (by design; live integration deferred).
 
 ## Blocked
 
@@ -73,9 +86,18 @@ Guardrails held: no live integration, no scraping, no real-account auth, no AI c
 
 - _(none yet)_
 
+## Phase 6 hardening backlog (seed)
+
+- LiveAdapter `mode` should be a distinct `'live'` literal (cosmetic; add to union).
+- `getOverviewByPlatform` could use explicit per-platform `groupBy` for query-layer clarity.
+- PayoutSplit: add `agencyPct + modelPct = 100` validation when agency phase is built.
+- global-setup: log `prisma db push` failure cause instead of swallowing silently.
+- Raise `/lib` coverage to ≥85%; add adapter error-accumulation unit test; content list scoping DB test.
+
 ## Next steps
 
-- Phase 1: full Prisma schema (§5), fixtures, seed, schema-invariant + idempotency tests.
+- Phase 3: template CRUD + variable substitution, draft-then-review composer,
+  BullMQ scheduled send → SENT_SIMULATED + audit (no platform contact), cancel/reschedule.
 
 ## How to run
 
