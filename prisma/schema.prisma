@@ -1,0 +1,310 @@
+// Creator CRM — data model (Phase 1).
+//
+// FROZEN after Phase 1: feature modules must NOT modify this schema.
+// Design principle: a single owner today becomes one of many agency-managed
+// models tomorrow. `modelId` (the creator) and `platform` (source_platform)
+// appear on every relevant record — multi-tenant from day one.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  OWNER
+  OPERATOR
+  MANAGER
+}
+
+enum Platform {
+  MANYVIDS
+  FANSLY
+  HIDDEN
+  ONLYFANS
+  SEXTPANTHER
+}
+
+enum PlatformAccountStatus {
+  ACTIVE
+  PAUSED
+  DISABLED
+}
+
+enum TransactionType {
+  SUBSCRIPTION
+  DM
+  PPV
+  TIP
+  OTHER
+}
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  BUNDLE
+}
+
+enum MessageDirection {
+  IN
+  OUT
+}
+
+enum ScheduledSendKind {
+  POST
+  MASS_MESSAGE
+  DM
+}
+
+enum ScheduledSendStatus {
+  DRAFT
+  SCHEDULED
+  SENT_SIMULATED
+  CANCELLED
+  FAILED
+}
+
+// ---------------------------------------------------------------------------
+// Auth / tenancy
+// ---------------------------------------------------------------------------
+
+/// Dashboard login accounts. Only OWNER is seeded tonight; others schema-ready.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(OWNER)
+  createdAt    DateTime @default(now())
+
+  auditLogs AuditLog[]
+
+  @@index([role])
+}
+
+/// A creator being managed (tonight: just the owner). Everything FKs to modelId.
+model Model {
+  id          String   @id @default(cuid())
+  displayName String
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  platformAccounts PlatformAccount[]
+  fans             Fan[]
+  transactions     Transaction[]
+  contentItems     ContentItem[]
+  messageThreads   MessageThread[]
+  messageTemplates MessageTemplate[]
+  scheduledSends   ScheduledSend[]
+  payoutSplits     PayoutSplit[]
+}
+
+/// A model's account on one platform. credentialRef/proxyRef are designed for
+/// AES-GCM encryption-at-rest and remain EMPTY tonight (no live integration).
+model PlatformAccount {
+  id            String                @id @default(cuid())
+  modelId       String
+  platform      Platform
+  handle        String
+  status        PlatformAccountStatus @default(ACTIVE)
+  credentialRef String? // encrypted-at-rest by design; null tonight
+  proxyRef      String? // per-account isolation slot; null tonight
+  createdAt     DateTime              @default(now())
+
+  model          Model           @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  fans           Fan[]
+  transactions   Transaction[]
+  messageThreads MessageThread[]
+  scheduledSends ScheduledSend[]
+
+  @@unique([modelId, platform, handle])
+  @@index([modelId])
+  @@index([platform])
+}
+
+// ---------------------------------------------------------------------------
+// CRM core
+// ---------------------------------------------------------------------------
+
+/// A subscriber/customer, scoped per platform account. Fans are NOT merged
+/// across platforms — a person on two platforms is two Fan rows (product decision).
+model Fan {
+  id                String   @id @default(cuid())
+  modelId           String
+  platformAccountId String
+  platform          Platform
+  externalRef       String // the platform's id for them, from import
+  displayName       String
+  tags              String[] @default([])
+  lifetimeValueCents Int     @default(0)
+  firstSeenAt       DateTime @default(now())
+  lastSeenAt        DateTime @default(now())
+  notes             String?
+
+  model           Model           @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  platformAccount PlatformAccount @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
+  transactions    Transaction[]
+  messageThreads  MessageThread[]
+
+  @@unique([platformAccountId, externalRef])
+  @@index([modelId])
+  @@index([platform])
+  @@index([platformAccountId])
+}
+
+/// Money events.
+model Transaction {
+  id                String          @id @default(cuid())
+  modelId           String
+  platformAccountId String
+  platform          Platform
+  fanId             String?
+  type              TransactionType
+  grossCents        Int
+  netCents          Int
+  currency          String          @default("USD")
+  occurredAt        DateTime
+  externalRef       String
+
+  model           Model           @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  platformAccount PlatformAccount @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
+  fan             Fan?            @relation(fields: [fanId], references: [id], onDelete: SetNull)
+
+  @@unique([platformAccountId, externalRef])
+  @@index([modelId])
+  @@index([platform])
+  @@index([occurredAt])
+  @@index([fanId])
+  @@index([type])
+}
+
+/// Vault/library asset metadata. Metadata + references only; no media tonight.
+model ContentItem {
+  id          String      @id @default(cuid())
+  modelId     String
+  title       String
+  type        ContentType
+  tags        String[]    @default([])
+  storageRef  String
+  durationSec Int?
+  createdAt   DateTime    @default(now())
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+  @@index([type])
+}
+
+/// Per-platform conversation record (populated from import/mock).
+model MessageThread {
+  id                String   @id @default(cuid())
+  modelId           String
+  platformAccountId String
+  platform          Platform
+  fanId             String
+  lastMessageAt     DateTime @default(now())
+
+  model           Model           @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  platformAccount PlatformAccount @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
+  fan             Fan             @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  messages        Message[]
+
+  @@index([modelId])
+  @@index([platform])
+  @@index([platformAccountId])
+  @@index([fanId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id          String           @id @default(cuid())
+  threadId    String
+  direction   MessageDirection
+  body        String
+  sentAt      DateTime
+  externalRef String
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, externalRef])
+  @@index([threadId])
+  @@index([sentAt])
+}
+
+/// Reusable scripts. modelId null = shared across models.
+model MessageTemplate {
+  id        String   @id @default(cuid())
+  modelId   String?
+  name      String
+  category  String
+  body      String
+  variables String[] @default([])
+  createdAt DateTime @default(now())
+
+  model Model? @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+  @@index([category])
+}
+
+/// Queued helper sends. "Sending" is SIMULATED tonight — the worker transitions
+/// to SENT_SIMULATED and writes an audit entry; it never contacts any platform.
+model ScheduledSend {
+  id                String              @id @default(cuid())
+  modelId           String
+  platformAccountId String
+  kind              ScheduledSendKind
+  payload           Json
+  status            ScheduledSendStatus @default(DRAFT)
+  scheduledFor      DateTime?
+  createdBy         String
+  createdAt         DateTime            @default(now())
+
+  model           Model           @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  platformAccount PlatformAccount @relation(fields: [platformAccountId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+  @@index([status])
+  @@index([scheduledFor])
+}
+
+// ---------------------------------------------------------------------------
+// Agency-phase stub + audit
+// ---------------------------------------------------------------------------
+
+/// Stub for the future agency phase. Schema only; no UI tonight.
+model PayoutSplit {
+  id            String   @id @default(cuid())
+  modelId       String
+  agencyPct     Int
+  modelPct      Int
+  effectiveFrom DateTime @default(now())
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+}
+
+/// Every create/update/delete to the above writes here.
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

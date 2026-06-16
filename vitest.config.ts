@@ -7,8 +7,15 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    globalSetup: ['./tests/global-setup.ts'],
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.{test,spec}.{ts,tsx}', 'lib/**/*.{test,spec}.{ts,tsx}'],
+    include: [
+      'tests/**/*.{test,spec}.{ts,tsx}',
+      'lib/**/*.{test,spec}.{ts,tsx}',
+      'fixtures/**/*.{test,spec}.{ts,tsx}',
+      'components/**/*.{test,spec}.{ts,tsx}',
+      'app/**/*.{test,spec}.{ts,tsx}',
+    ],
     exclude: ['node_modules', '.next', 'e2e'],
     coverage: {
       provider: 'v8',

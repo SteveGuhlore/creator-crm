@@ -35,3 +35,6 @@ npm-debug.log*
 # local db data
 /var/lib/pgtest
 *.tsbuildinfo
+
+# prisma generated client (regenerated via `prisma generate`)
+/lib/generated
