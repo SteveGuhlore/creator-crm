@@ -15,7 +15,11 @@ export type AuditAction =
   | 'SCHEDULE'
   | 'CANCEL'
   | 'SEND_SIMULATED'
-  | 'LOGIN';
+  | 'LOGIN'
+  | 'CONNECT'
+  | 'DISCONNECT'
+  | 'LIVE_SEND_MESSAGE'
+  | 'LIVE_CREATE_POST';
 
 export interface AuditInput {
   actorUserId?: string | null;

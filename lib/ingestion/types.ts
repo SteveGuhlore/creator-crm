@@ -74,7 +74,7 @@ export interface IngestCtx {
 
 export interface IngestionAdapter {
   readonly platform: Platform;
-  readonly mode: 'manual' | 'mock-live';
+  readonly mode: 'manual' | 'mock-live' | 'live';
   fetchFans(ctx: IngestCtx): Promise<NormalizedFan[]>;
   fetchTransactions(ctx: IngestCtx): Promise<NormalizedTransaction[]>;
   fetchMessages(ctx: IngestCtx): Promise<NormalizedThread[]>;
